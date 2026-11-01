@@ -1,0 +1,42 @@
+{"id": "q01", "question": "How many spaces should each indentation level use?", "gold": ["pep-0008#indentation/p1", "pep-0008#tabs-or-spaces"], "evidence": "Use 4 spaces per indentation level"}
+{"id": "q02", "question": "What's the longest a line of code should be?", "gold": ["pep-0008#maximum-line-length"], "evidence": "Limit all lines to a maximum of 79 characters"}
+{"id": "q03", "question": "When wrapping a long arithmetic expression, does the operator go at the end of the line or the start of the next one?", "gold": ["pep-0008#should-a-line-break-before-or-after-a-binary-operator"], "evidence": "binary operator"}
+{"id": "q04", "question": "How should I name a module file?", "gold": ["pep-0008#package-and-module-names"], "evidence": "Modules should have short, all-lowercase names"}
+{"id": "q05", "question": "Is it OK to check for None with ==?", "gold": ["pep-0008#programming-recommendations/p1"], "evidence": "Comparisons to singletons like None"}
+{"id": "q06", "question": "Should I use from module import * in my code?", "gold": ["pep-0008#imports"], "evidence": "Wildcard imports"}
+{"id": "q07", "question": "Which kind of quotes should surround a docstring?", "gold": ["pep-0257#what-is-a-docstring"], "evidence": "\"\"\"triple double quotes\"\"\""}
+{"id": "q08", "question": "How should a docstring that spans several lines start?", "gold": ["pep-0257#multi-line-docstrings/p1"], "evidence": "summary line"}
+{"id": "q09", "question": "Which two methods make an object usable in a with statement?", "gold": ["pep-0343#standard-terminology", "pep-0343#specification-the-with-statement/p1"], "evidence": "__exit__"}
+{"id": "q10", "question": "If the exit method of a context manager returns true, what happens to an exception raised in the block?", "gold": ["pep-0343#specification-the-with-statement/p1", "pep-0343#specification-the-with-statement/p2"], "evidence": "swallowed"}
+{"id": "q11", "question": "How does a venv's Python binary find the base installation it was created from?", "gold": ["pep-0405#specification"], "evidence": "pyvenv.cfg"}
+{"id": "q12", "question": "Where do you put type hints for a third-party library that ships without any?", "gold": ["pep-0484#stub-files/p1", "pep-0484#storing-and-distributing-stub-files"], "evidence": "Stub files"}
+{"id": "q13", "question": "How do you refer to a class in a type hint before the class has been defined?", "gold": ["pep-0484#forward-references"], "evidence": "forward references"}
+{"id": "q14", "question": "What letter goes in front of a string literal to make it interpolate expressions?", "gold": ["pep-0498#specification/p1"], "evidence": "'f' or 'F'"}
+{"id": "q15", "question": "Can the expressions inside the braces of an f-string contain backslashes?", "gold": ["pep-0498#escape-sequences"], "evidence": "Backslashes may not appear inside the expression"}
+{"id": "q16", "question": "Which table in pyproject.toml lists what's needed to build a project, and which key holds that list?", "gold": ["pep-0518#build-system-table"], "evidence": "requires"}
+{"id": "q17", "question": "How do I annotate a variable that belongs to the class rather than to each instance?", "gold": ["pep-0526#class-and-instance-variable-annotations"], "evidence": "ClassVar"}
+{"id": "q18", "question": "Which methods does the dataclass decorator add to a class?", "gold": ["pep-0557#specification/p1", "pep-0557#abstract"], "evidence": "dunder"}
+{"id": "q19", "question": "How can I stop instances of a data class from being modified after creation?", "gold": ["pep-0557#frozen-instances"], "evidence": "frozen"}
+{"id": "q20", "question": "Why can't a data class field default to an empty list, and what should I use instead?", "gold": ["pep-0557#mutable-default-values", "pep-0557#default-factory-functions"], "evidence": "default_factory"}
+{"id": "q21", "question": "What's the official name for the walrus operator expression?", "gold": ["pep-0572#syntax-and-semantics"], "evidence": "named expression"}
+{"id": "q22", "question": "Why can't I write y := f(x) as a statement on its own line?", "gold": ["pep-0572#exceptional-cases/p1"], "evidence": "Unparenthesized assignment expressions are prohibited"}
+{"id": "q23", "question": "Is there an operator for merging two dictionaries into a new one?", "gold": ["pep-0584#specification", "pep-0584#abstract"], "evidence": "dict"}
+{"id": "q24", "question": "When two merged dicts share a key, whose value ends up in the result?", "gold": ["pep-0584#specification"], "evidence": "the last-seen value"}
+{"id": "q25", "question": "Do I still need typing.List, or can I subscript the built-in list type?", "gold": ["pep-0585#abstract", "pep-0585#implementation"], "evidence": "list"}
+{"id": "q26", "question": "What's the shorter way to write Optional[int] or Union[int, str]?", "gold": ["pep-0604#proposal", "pep-0604#simplified-syntax"], "evidence": "int | str"}
+{"id": "q27", "question": "How do I make zip complain when its inputs have different lengths?", "gold": ["pep-0618#specification"], "evidence": "strict=True"}
+{"id": "q28", "question": "What does a lone underscore do as a pattern in a case clause?", "gold": ["pep-0634#capture-patterns", "pep-0634#wildcard-pattern", "pep-0636#adding-a-wildcard"], "evidence": "wildcard"}
+{"id": "q29", "question": "How do I check an object's type and pull out its attributes in a single case pattern?", "gold": ["pep-0634#class-patterns/p1", "pep-0636#adding-a-ui-matching-objects"], "evidence": "class"}
+{"id": "q30", "question": "How do I add an extra if condition to a case in a match statement?", "gold": ["pep-0634#guards", "pep-0636#adding-conditions-to-patterns"], "evidence": "guard"}
+{"id": "q31", "question": "How do newer tracebacks show exactly which part of a line failed?", "gold": ["pep-0657#displaying-tracebacks", "pep-0657#abstract"], "evidence": "^"}
+{"id": "q32", "question": "How does a Linux distro tell pip not to install packages into the system Python?", "gold": ["pep-0668#marking-an-interpreter-as-using-an-external-package-manager/p1"], "evidence": "EXTERNALLY-MANAGED"}
+{"id": "q33", "question": "How do I declare a generic class without importing TypeVar?", "gold": ["pep-0695#summary-examples", "pep-0695#type-parameter-declarations"], "evidence": "class ClassA[T"}
+{"id": "q34", "question": "Which new statement creates a type alias?", "gold": ["pep-0695#generic-type-alias", "pep-0695#summary-examples"], "evidence": "type ListOrSet"}
+{"id": "q35", "question": "How does CPython without the GIL keep reference counts thread-safe and fast?", "gold": ["pep-0703#reference-counting/p1"], "evidence": "biased reference counting"}
+{"id": "q36", "question": "What configure option builds CPython without the global interpreter lock?", "gold": ["pep-0703#build-configuration-changes"], "evidence": "--disable-gil"}
+{"id": "q37", "question": "How can a standalone script list the packages it needs to run?", "gold": ["pep-0723#specification", "pep-0723#example"], "evidence": "script"}
+{"id": "q38", "question": "After a function is compiled, where can I read its annotations?", "gold": ["pep-3107#accessing-function-annotations"], "evidence": "__annotations__"}
+{"id": "q39", "question": "What two arguments does a WSGI application object get called with?", "gold": ["pep-3333#specification-details/p1", "pep-3333#the-application-framework-side"], "evidence": "start_response"}
+{"id": "q40", "question": "Where does a WSGI app find the HTTP method of the request?", "gold": ["pep-3333#environ-variables/p1"], "evidence": "REQUEST_METHOD"}
+{"id": "q41", "question": "According to the Zen of Python, is explicit or implicit better?", "gold": ["pep-0020#the-zen-of-python"], "evidence": "Explicit is better than implicit"}
+{"id": "q42", "question": "Why not just use namedtuple instead of data classes?", "gold": ["pep-0557#why-not-just-use-namedtuple"], "evidence": "namedtuple"}
