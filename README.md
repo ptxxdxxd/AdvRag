@@ -1,5 +1,7 @@
 # AdvRag
 
+[![tests](https://github.com/ptxxdxxd/AdvRag/actions/workflows/tests.yml/badge.svg)](https://github.com/ptxxdxxd/AdvRag/actions/workflows/tests.yml)
+
 Question answering over Python's design documents (PEPs), with retrieval you can measure and answers that cite their sources.
 
 Ask a question, AdvRag finds the PEP sections most likely to answer it, then either quotes the best sentences or asks Claude to answer from those sections only. Every answer lists the exact sections it used. A hand-labeled set of 42 questions scores three retrievers, so changes are judged by numbers instead of by feel.
@@ -72,6 +74,8 @@ pip install -e ".[dev]"
 pytest
 ```
 
+The tests include a retrieval gate (`tests/test_regression.py`): if a change drops any retriever by two or more questions at Recall@5, the suite fails. GitHub Actions runs the corpus checksum check, the tests and the eval on Python 3.10 to 3.13 for every pull request, and keeps the eval table as a build artifact. None of this needs an API key.
+
 ## Not verified
 
 - **The `--llm` path has not been run against the real Claude API.** The tests send the request to a local fake server, which confirms the SDK accepts the request and that citations are mapped back to chunks. They don't confirm the API's answers or citations. The request uses `claude-opus-5-5` at low effort, with server-side refusal fallback turned on.
@@ -85,7 +89,8 @@ data/peps/     the 24 PEPs and their checksums
 evals/         questions.jsonl: 42 questions with gold sections
 results/       eval output and the LSA size sweep
 scripts/       corpus verification and the LSA sweep
-tests/         unit tests, plus checks that every eval label is valid
+tests/         unit tests, eval label checks and the retrieval gate
+.github/       CI workflow
 legacy/        the previous version, unmaintained
 ```
 
