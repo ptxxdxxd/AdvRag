@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "advrag"
+version = "0.2.0"
+description = "Retrieval-augmented QA over Python PEPs, with a labeled eval set and cited answers."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Chris Vickers" }]
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+llm = ["anthropic>=2.3"]
+dev = ["pytest>=8", "anthropic>=2.3"]
+
+[project.scripts]
+advrag = "advrag.cli:main"
+
+[tool.setuptools]
+packages = ["advrag"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

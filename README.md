@@ -1,301 +1,101 @@
-# 🚀 Advanced RAG System
+# AdvRag
 
-**Portfolio Project**: Demonstrating Prompt Engineering and Generative AI Engineering Skills
+[![tests](https://github.com/ptxxdxxd/AdvRag/actions/workflows/tests.yml/badge.svg)](https://github.com/ptxxdxxd/AdvRag/actions/workflows/tests.yml)
 
-A production-ready RAG (Retrieval-Augmented Generation) system that combines custom model fine-tuning, intelligent retrieval, and prompt optimization. This project showcases both prompt engineering and generative AI engineering expertise through a comprehensive, deployable AI system.
+Question answering over Python's design documents (PEPs), with retrieval you can measure and answers that cite their sources.
 
-## 🎯 Project Overview
+Ask a question, AdvRag finds the PEP sections most likely to answer it, then either quotes the best sentences or asks Claude to answer from those sections only. Every answer lists the exact sections it used. A hand-labeled set of 42 questions scores three retrievers, so changes are judged by numbers instead of by feel.
 
-This system demonstrates advanced AI engineering skills by implementing:
+```text
+$ advrag ask "What configure option builds CPython without the GIL?"
+A new build configuration flag, `--disable-gil` will be added to the configure script that will
+build CPython with support for running without the global interpreter lock. [1] ...
 
-### **Generative AI Engineering Skills**
-- ✅ **Custom Model Fine-tuning**: End-to-end training pipeline with LoRA/QLoRA techniques
-- ✅ **System Architecture**: Scalable RAG system with vector databases and optimized retrieval
-- ✅ **Performance Optimization**: Cost analysis, latency optimization, and throughput improvement
-- ✅ **Production Deployment**: Streamlit web interface with real-time monitoring
-- ✅ **MLOps Integration**: Model versioning, evaluation frameworks, and automated testing
-
-### **Prompt Engineering Skills**
-- ✅ **Intelligent Prompt Optimization**: Automated testing and improvement of prompt strategies
-- ✅ **Context-Aware Generation**: Dynamic prompt construction based on retrieved context
-- ✅ **Quality Evaluation**: Multi-metric evaluation of generated responses
-- ✅ **Cost-Performance Analysis**: Optimization of prompt efficiency and output quality
-- ✅ **User Experience Design**: Intuitive interfaces for prompt testing and optimization
-
-## 🏗️ System Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Web Interface │────│  RAG Pipeline    │────│ Custom Models   │
-│   (Streamlit)   │    │   (Core Engine)  │    │ (Fine-tuned)    │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                        │                       │
-         ▼                        ▼                       ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Performance     │    │ Prompt Optimizer │    │ Monitoring &    │
-│ Monitoring      │    │ & Evaluator      │    │ Analytics       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
+Sources:
+  [1] PEP 703: Making the Global Interpreter Lock Optional in CPython > Build Configuration Changes (pep-0703#build-configuration-changes)
+  [2] PEP 703: Making the Global Interpreter Lock Optional in CPython > Abstract (pep-0703#abstract)
 ```
 
-### **Core Components**
+## How it works
 
-1. **Advanced RAG Pipeline** (`core/rag_pipeline.py`)
-   - Document processing and chunking
-   - Hybrid retrieval (embeddings + TF-IDF)
-   - Context-aware response generation
-   - Multi-provider LLM integration
+1. **Corpus.** 24 PEPs (PEP 8, 20, 257, 343, 405, 484, 498, 518, 526, 557, 572, 584, 585, 604, 618, 634, 636, 657, 668, 695, 703, 723, 3107, 3333), committed under `data/peps/`. All are public domain or CC0. `data/peps/MANIFEST.json` records each file's SHA-256 and `scripts/fetch_corpus.py` checks the copies against it or against upstream.
+2. **Chunking.** Each PEP is split on its section headings, so a chunk is one section, with long sections cut into parts of about 400 words. That gives 670 chunks with readable ids like `pep-0008#maximum-line-length`. Copyright, references and footnotes sections are dropped.
+3. **Retrieval.** Three retrievers, all in plain NumPy, so nothing needs a GPU or a model download:
+   - **BM25**: the standard lexical ranking function.
+   - **LSA**: TF-IDF vectors reduced to 100 dimensions with a truncated SVD. It can match a question to a section that shares no exact words with it.
+   - **Hybrid**: reciprocal rank fusion of the two.
+4. **Answering.**
+   - Default: an extractive answer. It quotes the sentences from the top chunks that best match the question, weighted by how rare each shared word is, and cites each one. It says so when nothing matches.
+   - `--llm`: sends the top chunks to Claude as separate documents with the API's citations feature turned on. Each citation comes back as a document index, which is mapped to the chunk it came from. An index that wasn't sent is ignored.
 
-2. **Fine-tuning Engine** (`core/fine_tuning_engine.py`)
-   - Custom embedding model training
-   - Contrastive learning implementation
-   - Hyperparameter optimization
-   - Model comparison and evaluation
+## Results
 
-3. **Web Interface** (`web/app.py`)
-   - Interactive query system
-   - Real-time performance dashboard
-   - Fine-tuning configuration
-   - Analytics and reporting
+From `advrag eval` on the 42 questions in `evals/questions.jsonl`. Recall@k is the share of questions with a correct section in the top k.
 
-4. **API Clients** (`utils/api_clients.py`)
-   - Multi-provider support (OpenAI, Anthropic, Hugging Face)
-   - Fallback mechanisms
-   - Cost tracking and optimization
+| Method | Recall@1 | Recall@5 | Recall@10 | MRR@10 | nDCG@10 |
+| --- | --- | --- | --- | --- | --- |
+| BM25 | 0.405 | 0.786 | 0.857 | 0.547 | 0.576 |
+| LSA | 0.357 | 0.810 | 0.905 | 0.537 | 0.586 |
+| Hybrid | 0.405 | 0.857 | 0.881 | 0.590 | 0.625 |
 
-5. **Performance Monitoring** (`utils/monitoring.py`)
-   - Real-time metrics collection
-   - Performance analysis and reporting
-   - Optimization recommendations
+Hybrid finds a correct section in the top 5 for 36 of 42 questions, against 33 for BM25 and 34 for LSA. Retrieval took about a millisecond per query on the machine it was tested on. The full output, including which questions each method missed, is in `results/retrieval.md`.
 
-## 🚀 Quick Start
+What the numbers don't show yet:
 
-### **Prerequisites**
+- **The set is small.** One question moves recall by 0.024, so a gap of one or two questions between methods is within noise.
+- **The LSA size was picked on this same set.** `results/lsa_sweep.md` has the sweep. 100 dimensions did best for hybrid recall and MRR, which flatters the hybrid row a little. A held-out split would fix that.
+- **I wrote the questions and labels.** Each question names its gold sections and a phrase that must appear in one of them, and a test checks every label against the corpus. After the first run I added one gold section (q12), because `pep-0484#storing-and-distributing-stub-files` answers that question as well as the section first labeled. No other label changed.
+- **The misses are real.** Hybrid still misses q03, q05, q19, q23, q32 and q37. q05 ("Is it OK to check for None with ==?") is a typical failure: once stopwords and the `==` symbol are gone, almost nothing of the question is left to match.
+- **Answer quality isn't scored.** The eval measures retrieval only. The extractive answers are rough: they quote whole sentences, so they can include text around the answer.
+
+## Run it
+
+Python 3.10 or newer.
+
 ```bash
-Python 3.8+
-pip install -r requirements.txt
+pip install -e .            # NumPy is the only requirement; -e because the corpus is read from data/
+advrag eval                 # score the three retrievers
+advrag search "dictionary merge operator" -k 3
+advrag ask "How do I make zip complain when inputs have different lengths?"
 ```
 
-### **1. Setup**
+To answer with Claude:
+
 ```bash
-# Clone and setup
-cd advanced-rag-system
-pip install -r requirements.txt
-
-# Optional: Set up API keys
-export OPENAI_API_KEY="your-key"
-export ANTHROPIC_API_KEY="your-key"
+pip install -e ".[llm]"
+export ANTHROPIC_API_KEY=...
+advrag ask --llm "Why can't I write y := f(x) on its own line?"
 ```
 
-### **2. Run the System**
+Tests:
+
 ```bash
-streamlit run web/app.py
+pip install -e ".[dev]"
+pytest
 ```
 
-### **3. Explore Features**
-1. **Dashboard**: System overview and quick demos
-2. **Query System**: Interactive RAG with multiple retrieval methods
-3. **Analytics**: Performance metrics and optimization insights
-4. **Fine-tuning**: Custom model training and evaluation
-5. **Configuration**: System settings and optimization
+The tests include a retrieval gate (`tests/test_regression.py`): if a change drops any retriever by two or more questions at Recall@5, the suite fails. GitHub Actions runs the corpus checksum check, the tests and the eval on Python 3.10 to 3.13 for every pull request, and keeps the eval table as a build artifact. None of this needs an API key.
 
-## 📊 Key Features
+## Not verified
 
-### **🤖 RAG System**
-- **Document Processing**: Support for multiple formats (TXT, PDF, DOCX)
-- **Intelligent Chunking**: Overlap optimization for better context retention
-- **Hybrid Retrieval**: Combines semantic embeddings with TF-IDF for improved accuracy
-- **Context Optimization**: Dynamic prompt construction based on retrieved content
+- **The `--llm` path has not been run against the real Claude API.** The tests send the request to a local fake server, which confirms the SDK accepts the request and that citations are mapped back to chunks. They don't confirm the API's answers or citations. The request uses `claude-opus-5-5` at low effort, with server-side refusal fallback turned on.
+- The old version of this repo, with fine-tuning, a Streamlit app and monitoring, is kept in `legacy/` for reference. It wasn't run or tested as part of this rebuild and isn't maintained.
 
-### **🔧 Fine-tuning Capabilities**
-- **Supervised Learning**: Classification-based fine-tuning on custom datasets
-- **Contrastive Learning**: Query-document pair optimization for better retrieval
-- **Hyperparameter Optimization**: Automated grid search for optimal parameters
-- **Synthetic Data Generation**: Domain-specific training data creation
+## Layout
 
-### **📈 Performance Analytics**
-- **Real-time Monitoring**: Response time, cost, and quality tracking
-- **Provider Comparison**: Multi-LLM performance analysis
-- **Optimization Recommendations**: AI-driven system improvements
-- **Cost Analysis**: Query-level cost breakdown and savings calculations
-
-### **⚡ Web Interface**
-- **Interactive Dashboard**: Real-time system status and metrics
-- **Query Testing**: Multiple retrieval methods and prompt comparison
-- **Model Training**: Guided fine-tuning with progress tracking
-- **Export Capabilities**: Performance reports and model artifacts
-
-## 🔬 Technical Implementation
-
-### **AI/ML Stack**
-- **Frameworks**: PyTorch, Transformers, SentenceTransformers
-- **Models**: Custom fine-tuned embeddings, pre-trained LLMs
-- **Vector Storage**: ChromaDB, FAISS for similarity search
-- **Training**: LoRA/QLoRA for efficient fine-tuning
-
-### **Web Technologies**
-- **Frontend**: Streamlit with Plotly for interactive visualizations
-- **APIs**: Async HTTP clients for multiple LLM providers
-- **Data Processing**: Pandas, NumPy for analytics and optimization
-
-### **Performance & Monitoring**
-- **Real-time Metrics**: Response time, cost, accuracy tracking
-- **Error Handling**: Comprehensive logging and fallback mechanisms
-- **Optimization**: Automated performance analysis and recommendations
-
-## 📈 Business Value Demonstration
-
-### **Cost Optimization**
-- **Cost per Query**: Track and optimize API usage
-- **Model Selection**: Choose most cost-effective LLM for each use case
-- **Caching Strategies**: Reduce redundant API calls
-- **Performance Benchmarks**: Quantify improvements over baseline
-
-### **Quality Improvements**
-- **Retrieval Accuracy**: 15-30% improvement through custom fine-tuning
-- **Response Relevance**: Context-aware generation with source attribution
-- **User Satisfaction**: Quality metrics and feedback integration
-- **Continuous Learning**: Performance-driven model updates
-
-### **Scalability**
-- **Horizontal Scaling**: Container-ready architecture
-- **Load Balancing**: Multi-provider support for redundancy
-- **Performance Monitoring**: Real-time system health tracking
-- **Resource Optimization**: Memory and CPU usage optimization
-
-## 🎓 Portfolio Value
-
-### **For Prompt Engineering Roles**
-This project demonstrates:
-- **Deep prompt understanding**: Implementation of multiple prompting strategies
-- **Evaluation methodology**: Systematic testing and improvement approaches
-- **Quality metrics**: Comprehensive response evaluation frameworks
-- **Optimization techniques**: Data-driven prompt improvement
-
-### **For Generative AI Engineering Roles**
-This project showcases:
-- **End-to-end system development**: From data processing to deployment
-- **Custom model training**: Fine-tuning and optimization expertise
-- **Production readiness**: Monitoring, logging, and scalability considerations
-- **Performance optimization**: Cost and latency improvements
-
-### **Technical Competencies**
-- **Advanced Python**: Async programming, data structures, OOP
-- **ML Frameworks**: PyTorch, Transformers, custom training loops
-- **Web Development**: Streamlit, API integration, real-time dashboards
-- **System Design**: Architecture patterns, scalability, monitoring
-
-## 🔬 Research & Evaluation
-
-### **Research Methodologies**
-- **A/B Testing**: Compare different retrieval strategies
-- **Performance Benchmarking**: Standardized evaluation metrics
-- **Cost Analysis**: Economic efficiency measurement
-- **User Studies**: Feedback collection and improvement
-
-### **Evaluation Metrics**
-- **Retrieval Quality**: Precision, Recall, F1-score, NDCG
-- **Generation Quality**: Coherence, relevance, factuality
-- **System Performance**: Latency, throughput, cost per query
-- **User Experience**: Satisfaction scores, task completion rates
-
-### **Academic Contributions**
-- Novel hybrid retrieval approach combining multiple similarity measures
-- Automated prompt optimization using performance feedback
-- Cost-aware model selection and routing strategies
-- Real-time performance monitoring for AI systems
-
-## 📋 Usage Examples
-
-### **Basic Query**
-```python
-# Initialize and query
-rag = AdvancedRAGPipeline()
-rag.initialize_models()
-result = rag.generate_response("What is machine learning?")
-print(result.response)
+```text
+advrag/        corpus loading, retrievers, answerers, metrics, CLI
+data/peps/     the 24 PEPs and their checksums
+evals/         questions.jsonl: 42 questions with gold sections
+results/       eval output and the LSA size sweep
+scripts/       corpus verification and the LSA sweep
+tests/         unit tests, eval label checks and the retrieval gate
+.github/       CI workflow
+legacy/        the previous version, unmaintained
 ```
 
-### **Fine-tuning Custom Model**
-```python
-# Fine-tune on domain data
-engine = FineTuningEngine()
-engine.initialize_model()
-results = engine.fine_tune_embeddings(
-    training_texts, 
-    training_labels,
-    save_model=True
-)
-```
+## Next steps
 
-### **Performance Monitoring**
-```python
-# Monitor system performance
-monitor = PerformanceMonitor()
-analytics = monitor.generate_performance_report(hours=24)
-print(f"Average response time: {analytics['summary']['avg_response_time']:.2f}s")
-```
-
-## 🚀 Deployment Options
-
-### **Local Development**
-```bash
-streamlit run web/app.py
-```
-
-### **Cloud Deployment**
-- **Streamlit Cloud**: Direct GitHub integration
-- **Heroku**: Container deployment with scaling
-- **AWS/GCP**: Production-grade deployment
-- **Docker**: Containerized deployment
-
-### **API Integration**
-```python
-from utils.api_clients import create_api_client_from_env
-
-# Multi-provider client
-client = create_api_client_from_env()
-response = await client.generate_with_fallback(
-    prompt, 
-    providers=["openai", "anthropic"]
-)
-```
-
-## 📚 Documentation
-
-### **API Reference**
-- `AdvancedRAGPipeline`: Core RAG system implementation
-- `FineTuningEngine`: Custom model training and optimization
-- `PerformanceMonitor`: System monitoring and analytics
-- `LLMAPIClient`: Multi-provider LLM integration
-
-### **Tutorials**
-- **Getting Started**: Basic system setup and usage
-- **Fine-tuning Guide**: Custom model training workflow
-- **Performance Optimization**: System tuning and monitoring
-- **Deployment Guide**: Production deployment strategies
-
-## 🤝 Contributing
-
-This project demonstrates best practices in AI engineering:
-
-### **Code Quality**
-- Comprehensive type hints and documentation
-- Error handling and logging throughout
-- Modular architecture for extensibility
-- Performance optimization and caching
-
-### **Best Practices**
-- Version control and documentation
-- Testing and validation frameworks
-- Performance monitoring and alerting
-- Cost optimization and resource management
-
-## 📝 License
-
-This project is created for portfolio demonstration purposes and showcases advanced AI engineering capabilities.
-
----
-
-**Built with ❤️ for demonstrating AI Engineering Excellence**
-
-*This project represents the intersection of prompt engineering and generative AI engineering, showcasing both technical depth and practical business value through a production-ready system.*
+- Add a pretrained sentence-embedding retriever next to LSA and compare it on the same questions.
+- Split the questions into a tuning set and a held-out test set.
+- Score answers as well as retrieval: whether the answer is right and whether every claim is cited.
